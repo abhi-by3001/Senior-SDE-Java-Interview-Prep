@@ -110,6 +110,39 @@ Q - How do you handle optimistic vs pessimistic locking in JPA?
 Q - Explain dirty checking in Hibernate?  
 Q - Entity lifecycle states (Transient, Persistent, Detached, Removed)?  
 Q - You have a product catalog service where multiple users can update stock quantity at the same time. How would you use JPA locking to prevent inconsistent data?  
-
-
+Q - Why @Transactional can silently fail ?  
+Q - ExecutorService, Callable and Future?  
+Q - How do you handle exceptions in spring boot?  
+Q - How do you handle a hot partition when one seller gets 10x traffic overnight?  
+Q - How would you design an inventory system that stays consistent during a flash sale?  
+Q - SQL vs NoSQL and how do you decide for a given access pattern?  
+Q - What is var? Can it be used with generics?  
+Q - What is an effectively final variable?  
+Q - What is optional ? When should you use it ?  
+Q - Checked vs Unchecked exceptions?  
+Q - Can HashMap keys be Mutable? Why?  
+Q - What is @ControllerAdvice?  
+Q - Can interfaces have private methods ?  
+Q - What types of methods can interfaces contain ?  
+Q - Same default methods in two interfaces, how to resolve ?  
+Q - How do you implement security across microservices?  
+Q - Lazy vs Eager loading?  
+Q - @PathVariable vs @RequestParam?  
+Q - What are Spring profiles and how are they different from Maven profiles ?  
+Q - Explain the Bean lifecycle?  
+Q - @Primary vs @Qualifier?  
+Q - Your API response jumps from 200 ms to 5 seconds , where do you look first?  
+Q - The application works fine with 100 users but fails at 10,000 users. What breaks ?  
+Q - CPU usage is normal, but API latency is high. What could be happening?  
+Q - How do you identify whether the bottleneck is in your code, database, network or downstream service?  
+Q - A query takes milliseconds in development but 10 seconds in production. Why?  
+Q - Memory usage keeps increasing for several days and eventually the application crashes. How do you find the leak?  
+Q - A downstream service becomes extremely slow. How do you prevent it from taking down your entire application?  
+Q - When would you use Circuit breaker, retry timeout and Bulkhead?  
+Q - Multiple application instances are running. How would you handle cache invalidation consistently?  
+Q - Redis goes down, should you application also go down ? How would you design the fallback?  
+Q - How would you design communication between microservices using synchronous and asynchronous approaches?  
+Q - What is difference between API Gateway, Service Discovery and Load Balancing?  
+Q - How do you handle distributed transactions? Explain Saga and Outbox pattern?  
+Q - How do you ensure idempotency in a microservices based payment or order API?  
 
