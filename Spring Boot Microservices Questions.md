@@ -61,4 +61,55 @@ ANS -
 @RestController -> @Controller + @ResponseBody — returns data (JSON) directly, not a view  
 @Configuration -> Marks a class containing @Bean definitions  
 
+Q- Your spring boot api normally responds in 200ms, but today it is taking 8 seconds , how would you troubleshoot it?  
+(log analysis, db query optimization, hikari cp connection pool, thread dumps, jvm (heap, gc, cpu), external service, latency, monitoring and observability, production debugging approach)  
+Q- How can synchronization related performance bottlenecks be minimized?  
+Q- What is ThreadLocal, and how can it lead to memory leaks?  
+Q- What is a BlockingQueue and where is it used in production systems?  
+Q- What is the purpose of @PostConstruct and when is it executed?  
+Q - How does Dependency Injection work internally in Spring Boot?  
+Q - Explain the JVM Memory Model, including Hep, Stack and Metaspace?  
+Q - How do you implement global exception handling in Spring Boot?  
+Q - What are atomic variables and in which scenarios are they commonly used?  
+Q - Why did you choose a microservices architecture instead of a monolith architecture?  
+Q - What are the key differences between kafka and RabbitMQ, and when would you choose each?  
+Q - Explain your CI/CD pipeline. Walk through your Jenkins build process?  
+Q - What are the key features of Istio and Service Mesh in kubernetes?  
+Q - How do you Dockerize a Spring Boot application?  
+Q - How do you manage distributed transactions across microservices?  
+Q - What is the difference between clustered and non-clustered indexes?  
+Q - What is a RESTful API and difference between REST and SOAP?  
+Q - What is Spring and why do we use Spring?  
+Q - Difference between Spring and Spring boot?  
+Q - How does autowiring work in spring?  
+Q - What is Spring security?  
+Q - Difference between HTTP and HTTPs?  
+Q - How to find server crash reasons?  
+Q - How to find server memory?  
+Q - How do you debug high CPU or memory issues in JVM?  
+Q - How do you capture heap/thread dumps?  
+Q - How do microservices communicate?  
+Q - How do you implement JWT authentication (also in spring boot)?  
+Q - OAuth2 vs JWT?  
+Q - RestTemplate vs WebClient?  
+Q - What is idempotency in distributed systems?  
+Q - First-level vs Second-level cache in JPA?
+Q - What is N+1 problem?
+Q - How to optimize slow queries?  
+Q - How do you handle concurrent updates?  
+Q - How to handle 1M+ transactions daily?  
+Q - Saga Pattern vs 2PC?  
+Q - How to ensure data consistency across services?  
+Q - How to implement distributed locking?  
+Q - How do you deploy microservices using Docker?  
+Q - What is Circuit Breaker (circuit breaker pattern with Resilience4J) ?  
+Q - How do you monitor logs?  
+Q - How does Spring Boot decide which auto-configuration to apply?  
+Q - Difference between get() and load() in Hibernate?  
+Q - How do you handle optimistic vs pessimistic locking in JPA?  
+Q - Explain dirty checking in Hibernate?  
+Q - Entity lifecycle states (Transient, Persistent, Detached, Removed)?  
+Q - You have a product catalog service where multiple users can update stock quantity at the same time. How would you use JPA locking to prevent inconsistent data?  
+
+
 
