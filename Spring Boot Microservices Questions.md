@@ -131,6 +131,12 @@ Q - How to ensure data consistency across services?
 Q - How to implement distributed locking?  
 Q - How do you deploy microservices using Docker?  
 Q - What is Circuit Breaker (circuit breaker pattern with Resilience4J) ?  
+ANS - A circuit breaker is a state machine that stops calling a failing downstream service, so your app fails fast instead of wasting threads waiting and causing a cascading failure.  
+In software:  
+Closed → calls pass through.  
+Open → calls fail immediately, no downstream traffic.  
+Half-open → allow a few test calls. If OK, close. If not, stay open.  
+
 Q - How do you monitor logs?  
 Q - How does Spring Boot decide which auto-configuration to apply?  
 Q - Difference between get() and load() in Hibernate?  
