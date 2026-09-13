@@ -61,7 +61,7 @@ ANS -
 @RestController -> @Controller + @ResponseBody — returns data (JSON) directly, not a view  
 @Configuration -> Marks a class containing @Bean definitions  
 
-Q3 - What are bulkheads?
+Q3 - What are bulkheads?  
 ANS - Simple analogy: ship bulkheads  
 A ship has watertight compartments.  
 If one compartment gets flooded, the water stays there. The rest of the ship stays dry and keeps floating.  
@@ -205,4 +205,5 @@ Q - How do you ensure idempotency in a microservices based payment or order API?
 29. An EC2 instance needs to access S3 securely. How would you configure it without storing credentials?  
 30. A deployment causes increased latency. How would you identify the root cause and roll back safely?  
 
+Streams API questions - https://medium.com/@asishpanda444/stream-api-coding-qna-8df8682b7e2a
 
