@@ -61,6 +61,34 @@ ANS -
 @RestController -> @Controller + @ResponseBody — returns data (JSON) directly, not a view  
 @Configuration -> Marks a class containing @Bean definitions  
 
+Q3 - What are bulkheads?
+ANS - Simple analogy: ship bulkheads  
+A ship has watertight compartments.  
+If one compartment gets flooded, the water stays there. The rest of the ship stays dry and keeps floating.  
+Without bulkheads, one leak sinks the whole ship.  
+In software  
+Your app has limited resources: threads, connections, memory.  
+Without bulkhead:  
+All requests share one big thread pool.  
+A slow downstream service starts consuming all threads.  
+Soon every thread is stuck waiting on that one slow service.  
+Now your whole app is down — even requests that don’t need that service.  
+With bulkhead:  
+You give each downstream service its own small pool.  
+If Service B becomes slow, only Service B’s pool fills up.  
+Service A and Service C still have their own threads and keep working.  
+Simple example  
+Payment service → max 50 concurrent calls  
+Recommendation service → max 10 concurrent calls  
+Search service → max 20 concurrent calls  
+If Recommendation becomes slow:  
+Only 10 threads get stuck waiting on it.  
+Payment and Search are unaffected.  
+Your app stays alive.  
+How it’s implemented  
+Usually with a semaphore or a separate thread pool  
+
+
 Q- Your spring boot api normally responds in 200ms, but today it is taking 8 seconds , how would you troubleshoot it?  
 (log analysis, db query optimization, hikari cp connection pool, thread dumps, jvm (heap, gc, cpu), external service, latency, monitoring and observability, production debugging approach)  
 Q- How can synchronization related performance bottlenecks be minimized?  
