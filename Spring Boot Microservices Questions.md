@@ -352,3 +352,357 @@ Consumed
 > **`wait()` = release lock + sleep.  
 > `notify()` = wake one sleeper, but keep lock until done.  
 > Always check condition in a `while` loop inside `synchronized`.**
+
+
+# Revision Notes: ReentrantLock in Java (with Tricky Points)
+
+## 1. What Is a Lock?
+- Only **one thread at a time** can enter a critical section.
+- Others must wait outside until the lock is released.
+
+---
+
+## 2. What Does "Reentrant" Mean?
+- **Reentrant = a thread that already holds the lock can acquire it again** without blocking.
+- The lock keeps an internal **hold count**.
+- Thread must `unlock()` **the same number of times** it `lock()`ed.
+
+```java
+lock.lock();   // count = 1
+lock.lock();   // count = 2
+lock.unlock(); // count = 1
+lock.unlock(); // count = 0 → fully released
+```
+
+---
+
+## 3. `synchronized` Is Also Reentrant (Automatic)
+
+```java
+synchronized void outer() {
+    inner();   // same thread, already holds lock → OK
+}
+synchronized void inner() {
+    // runs fine
+}
+```
+
+- JVM tracks hold count **internally** (hidden from you).
+- **No `getHoldCount()` needed** — it's automatic.
+- Lock released **automatically** when the synchronized block/method exits.
+
+---
+
+## 4. `ReentrantLock` vs `synchronized` — Quick Compare
+
+| Feature | `synchronized` | `ReentrantLock` |
+|---|---|---|
+| Reentrant | ✅ | ✅ |
+| Hold count visible? | ❌ (hidden) | ✅ `getHoldCount()` |
+| Auto unlock? | ✅ | ❌ (must use `finally`) |
+| `tryLock()` | ❌ | ✅ |
+| Timed lock | ❌ | ✅ |
+| Interruptible wait | ❌ | ✅ `lockInterruptibly()` |
+| Fairness option | ❌ | ✅ `new ReentrantLock(true)` |
+| Multiple conditions | ❌ (only 1 wait room) | ✅ multiple `Condition`s |
+| Simpler code | ✅ | ❌ |
+| Speed (modern JVM) | Similar | Similar |
+
+**Rule of thumb:** Use `synchronized` unless you need the extra features.
+
+---
+
+## 5. Basic Usage — Golden Rule
+
+```java
+ReentrantLock lock = new ReentrantLock();
+
+lock.lock();
+try {
+    // critical section
+} finally {
+    lock.unlock();   // ALWAYS in finally!
+}
+```
+
+**Why `finally`?** If an exception is thrown and you forget to unlock → everyone waits forever.
+
+---
+
+## 6. Reentrancy Demo with `getHoldCount()`
+
+```java
+ReentrantLock lock = new ReentrantLock();
+
+void outer() {
+    lock.lock();
+    try {
+        System.out.println(lock.getHoldCount()); // 1
+        inner();
+    } finally {
+        lock.unlock();
+    }
+}
+
+void inner() {
+    lock.lock();
+    try {
+        System.out.println(lock.getHoldCount()); // 2
+    } finally {
+        lock.unlock();   // count → 1
+    }
+}
+```
+
+---
+
+## 7. ⚠️ TRICKY POINT: Does Calling a Non-Synchronized Method Release the Lock?
+
+## **NO. Never.**
+
+> The lock is released **ONLY** when:
+> - The `synchronized` block/method ends (automatic), OR
+> - You call `unlock()` on `ReentrantLock` (manual), OR
+> - You call `wait()` / `condition.await()` (temporarily).
+
+```java
+synchronized void outer() {
+    System.out.println("Holding lock");
+    inner();   // NOT synchronized — but lock is STILL held!
+    System.out.println("Still holding lock");
+}
+
+void inner() {
+    System.out.println("Running, but outer still holds the lock");
+}
+```
+
+**What happens:**
+1. Thread A enters `outer()` → gets lock.
+2. Thread A calls `inner()` → **lock NOT released**.
+3. Thread B tries `outer()` → **BLOCKED** until A finishes `outer()` completely.
+
+Same with `ReentrantLock`:
+
+```java
+void outer() {
+    lock.lock();
+    try {
+        inner();   // lock still held
+    } finally {
+        lock.unlock();   // released ONLY here
+    }
+}
+```
+
+### When is lock released?
+
+| Situation | Lock released? |
+|---|---|
+| Call non-synchronized method while holding lock | ❌ No |
+| Exit synchronized block/method | ✅ Yes (auto) |
+| Call `unlock()` | ✅ Yes (manual) |
+| Call `wait()` / `await()` | ✅ Yes (temporarily, re-acquired after waking) |
+
+**Lesson:** Keep synchronized blocks **short**. Don't call slow methods while holding the lock.
+
+---
+
+## 8. `tryLock()` — Don't Wait, Just Try
+
+```java
+if (lock.tryLock()) {
+    try { /* work */ } finally { lock.unlock(); }
+} else {
+    System.out.println("Busy, doing something else");
+}
+```
+
+**Timed version:**
+
+```java
+if (lock.tryLock(2, TimeUnit.SECONDS)) {
+    try { /* work */ } finally { lock.unlock(); }
+} else {
+    System.out.println("Gave up after 2 seconds");
+}
+```
+
+---
+
+## 9. ⚠️ TRICKY POINT: `lockInterruptibly()` — "I Can Be Woken Up"
+
+### `lock()` vs `lockInterruptibly()`
+
+| | `lock()` | `lockInterruptibly()` |
+|---|---|---|
+| Can be interrupted while waiting? | ❌ No | ✅ Yes |
+| Throws on interrupt? | No | `InterruptedException` |
+| Can give up? | No | Yes |
+
+### Story:
+> **`lock()`** → You wait outside a door forever. Even if your boss calls, you ignore everything.
+> **`lockInterruptibly()`** → You wait, but your phone is on. If boss calls, you pick up and leave.
+
+### Code:
+
+```java
+try {
+    lock.lockInterruptibly();
+    try {
+        // work
+    } finally {
+        lock.unlock();
+    }
+} catch (InterruptedException e) {
+    System.out.println("Interrupted while waiting — giving up");
+}
+```
+
+**When useful?**
+- Cancellation (user clicks "Cancel")
+- Timeouts
+- Deadlock avoidance
+- Responsive UI
+
+---
+
+## 10. ⚠️ TRICKY POINT: Fair Lock and Starvation
+
+### What is starvation?
+> A thread waits **forever** (or very long) because other threads keep getting the lock first.
+
+### Fair vs Unfair Lock
+
+```java
+ReentrantLock unfairLock = new ReentrantLock();        // default
+ReentrantLock fairLock   = new ReentrantLock(true);    // fair = FIFO
+```
+
+| | Unfair (default) | Fair (`true`) |
+|---|---|---|
+| Order | Scheduler decides | FIFO (queue) |
+| Speed | Faster | Slower |
+| Starvation possible? | Yes | No |
+| Throughput | Higher | Lower |
+
+**When to use fair?** When starvation is unacceptable (real-time systems, fair allocation). Otherwise, unfair is fine — it's faster.
+
+---
+
+## 11. ⚠️ TRICKY POINT: `Condition` — Two Waiting Rooms
+
+### The problem with `synchronized` + `notifyAll()`
+
+Only **ONE waiting room** for all threads.
+
+- 3 producers waiting (buffer full)
+- 2 consumers waiting (buffer empty)
+- Consumer takes item → `notifyAll()` wakes **all 5** — including other consumers with nothing to do!
+- This is the **"thundering herd" problem** — wasted wakeups.
+
+### The fix: `ReentrantLock` + 2 Conditions
+
+```java
+ReentrantLock lock = new ReentrantLock();
+Condition notFull  = lock.newCondition();  // waiting room for PRODUCERS
+Condition notEmpty = lock.newCondition();  // waiting room for CONSUMERS
+```
+
+| Waiting Room | Who waits? | When? |
+|---|---|---|
+| `notFull` | Producers | Buffer is full |
+| `notEmpty` | Consumers | Buffer is empty |
+
+| Action | Signal | Who wakes? |
+|---|---|---|
+| Producer adds | `notEmpty.signal()` | **Only consumers** |
+| Consumer takes | `notFull.signal()` | **Only producers** |
+
+### Full Code:
+
+```java
+class Buffer {
+    private int item = 0;
+    private final ReentrantLock lock = new ReentrantLock();
+    private final Condition notFull  = lock.newCondition();
+    private final Condition notEmpty = lock.newCondition();
+
+    void put() throws InterruptedException {
+        lock.lock();
+        try {
+            while (item == 1) notFull.await();  // producer sleeps
+            item = 1;
+            System.out.println("Produced");
+            notEmpty.signal();                   // wake ONLY consumer
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    void get() throws InterruptedException {
+        lock.lock();
+        try {
+            while (item == 0) notEmpty.await(); // consumer sleeps
+            item = 0;
+            System.out.println("Consumed");
+            notFull.signal();                    // wake ONLY producer
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+```
+
+### `synchronized` vs `Condition` mapping:
+
+| `synchronized` | `ReentrantLock` |
+|---|---|
+| `wait()` | `condition.await()` |
+| `notify()` | `condition.signal()` |
+| `notifyAll()` | `condition.signalAll()` |
+
+**Big win:** Precise signaling → fewer wasted wakeups → better performance.
+
+---
+
+## 12. Common Mistakes
+
+| Mistake | Fix |
+|---|---|
+| Forgetting `unlock()` | Always in `finally` |
+| Unlocking more times than locking | Match each `lock()` with one `unlock()` |
+| Unlocking from a different thread | Only the lock owner can unlock |
+| Returning early without unlock | Use `try/finally` |
+| `await()` without holding lock | Must hold lock first |
+| Thinking non-synchronized call releases lock | It does NOT |
+| Using `if` instead of `while` with `await()` | Always use `while` |
+
+---
+
+## 13. When to Use What?
+
+| Scenario | Use |
+|---|---|
+| Simple mutual exclusion | `synchronized` |
+| Need `tryLock` / timeout | `ReentrantLock` |
+| Need interruptible wait | `ReentrantLock` |
+| Need fairness | `ReentrantLock(true)` |
+| Need multiple conditions | `ReentrantLock` + `Condition` |
+| Just want simplicity | `synchronized` |
+
+---
+
+## 14. One-Line Summaries
+
+> **ReentrantLock** = manual lock you can re-enter, with extras: `tryLock`, timeouts, fairness, multiple conditions. Always `unlock()` in `finally`.
+
+> **Reentrant** = a thread holding the lock can lock it again. Count must go to 0 to release.
+
+> **Non-synchronized call** does NOT release the lock. Lock held until block ends or `unlock()`.
+
+> **`lockInterruptibly()`** = waiting thread can be interrupted and give up.
+
+> **Starvation** = thread waits forever because others keep jumping ahead. Fix = fair lock.
+
+> **Condition** = separate waiting rooms for producers and consumers → wake only the right group.
