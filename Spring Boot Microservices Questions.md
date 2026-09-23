@@ -213,3 +213,142 @@ Q - How do you ensure idempotency in a microservices based payment or order API?
 
 Streams API questions - https://medium.com/@asishpanda444/stream-api-coding-qna-8df8682b7e2a
 
+
+# Revision Notes: `wait()` and `notify()` in Java
+
+## 1. Core Idea
+- `wait()` → “I’ll release the lock and sleep. Wake me when things change.”
+- `notify()` → “One sleeping thread can wake up now.”
+- `notifyAll()` → “All sleeping threads can wake up now.”
+
+They are used for **inter-thread communication** on a shared object.
+
+---
+
+## 2. Key Methods (from `Object` class)
+
+| Method | Meaning |
+|---|---|
+| `wait()` | Release lock + wait until notified |
+| `wait(timeout)` | Wait with max timeout |
+| `notify()` | Wake **one** waiting thread |
+| `notifyAll()` | Wake **all** waiting threads |
+
+---
+
+## 3. Golden Rules
+
+1. **Must be inside `synchronized`**  
+   Otherwise → `IllegalMonitorStateException`.
+
+2. **`wait()` releases the lock**  
+   Lets other threads enter and change state.
+
+3. **`notify()` does NOT release the lock immediately**  
+   The woken thread waits until the notifying thread exits the `synchronized` block.
+
+4. **Always use `while`, never `if`**  
+   Re-check condition after waking. Handles spurious wakeups and race conditions.
+
+5. **Call on the same object whose lock you hold**  
+   Inside a `synchronized` method, it’s `this`.
+
+---
+
+## 4. Standard Pattern
+
+```java
+synchronized void someMethod() {
+    while (conditionIsNotReady) {
+        wait();
+    }
+    // do work
+    notifyAll(); // or notify()
+}
+```
+
+---
+
+## 5. Concise Code Example: Producer–Consumer
+
+```java
+class Box {
+    private int item = 0; // 0 = empty, 1 = full
+
+    synchronized void put() throws InterruptedException {
+        while (item != 0) {          // wait if full
+            wait();
+        }
+        item = 1;
+        System.out.println("Produced");
+        notifyAll();                 // wake consumer
+    }
+
+    synchronized void get() throws InterruptedException {
+        while (item == 0) {          // wait if empty
+            wait();
+        }
+        item = 0;
+        System.out.println("Consumed");
+        notifyAll();                 // wake producer
+    }
+}
+
+public class Demo {
+    public static void main(String[] args) {
+        Box box = new Box();
+
+        Thread producer = new Thread(() -> {
+            try { box.put(); } catch (InterruptedException e) {}
+        });
+
+        Thread consumer = new Thread(() -> {
+            try { box.get(); } catch (InterruptedException e) {}
+        });
+
+        consumer.start();
+        producer.start();
+    }
+}
+```
+
+**Output:**
+```
+Produced
+Consumed
+```
+(Order may vary.)
+
+---
+
+## 6. What Happens Step-by-Step
+
+| Step | Consumer Thread | Producer Thread | Lock Owner |
+|---|---|---|---|
+| 1 | Enters `get()`, gets lock | — | Consumer |
+| 2 | `item == 0` → calls `wait()` | — | **Consumer releases lock** |
+| 3 | Sleeping | Enters `put()`, gets lock | Producer |
+| 4 | Sleeping | Sets `item = 1`, calls `notifyAll()` | Producer |
+| 5 | Still sleeping (can’t run yet) | Exits `put()`, releases lock | Nobody |
+| 6 | Wakes, re-acquires lock, re-checks `while` | — | Consumer |
+| 7 | `item == 1` → exits loop, consumes | — | Consumer |
+
+---
+
+## 7. Common Mistakes
+
+| Mistake | Fix |
+|---|---|
+| `wait()` outside `synchronized` | Put inside `synchronized` |
+| Using `if` instead of `while` | Always use `while` |
+| Calling `notify()` before `wait()` | Signal is lost → use proper condition loop |
+| Thinking `notify()` releases lock | It doesn’t; lock released at end of synchronized block |
+| Using different objects for `wait`/`notify` | Use the same shared object |
+
+---
+
+## 8. One-Line Summary
+
+> **`wait()` = release lock + sleep.  
+> `notify()` = wake one sleeper, but keep lock until done.  
+> Always check condition in a `while` loop inside `synchronized`.**
