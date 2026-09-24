@@ -706,3 +706,89 @@ class Buffer {
 > **Starvation** = thread waits forever because others keep jumping ahead. Fix = fair lock.
 
 > **Condition** = separate waiting rooms for producers and consumers → wake only the right group.
+
+
+
+# SQL Cheat Sheet: JOINs & GROUP BY
+
+## 1. SQL JOINs Overview
+SQL JOINs are used to combine rows from two or more tables based on a related column between them.
+
+### Types of JOINs
+*   **`INNER JOIN`**: Returns rows that have matching values in **both** tables.
+*   **`LEFT (OUTER) JOIN`**: Returns **all** rows from the left table, plus matching rows from the right table. If no match is found, `NULL` is returned for the right table.
+*   **`RIGHT (OUTER) JOIN`**: Returns **all** rows from the right table, plus matching rows from the left table. If no match is found, `NULL` is returned for the left table.
+*   **`FULL (OUTER) JOIN`**: Returns **all** rows when there is a match in either the left or right table. Missing values are filled with `NULL`.
+*   **`CROSS JOIN`**: Returns the Cartesian product of the two tables (every possible combination of rows).
+*   **`SELF JOIN`**: A standard join (inner or left) where a table is joined to itself.
+
+### Standard JOIN Syntax
+```sql
+SELECT 
+    table1.column1, 
+    table2.column2
+FROM table1
+<JOIN_TYPE> JOIN table2 
+    ON table1.common_column = table2.common_column;
+```
+
+---
+
+## 2. The GROUP BY Clause
+The `GROUP BY` clause groups rows that have the same values into summary rows, typically used alongside aggregate functions like `COUNT()`, `SUM()`, `AVG()`, `MAX()`, or `MIN()`.
+
+### Standard GROUP BY Syntax
+```sql
+SELECT 
+    column_to_group_by, 
+    AGGREGATE_FUNCTION(column_to_summarize)
+FROM table_name
+WHERE condition -- Filters raw rows BEFORE grouping
+GROUP BY column_to_group_by
+HAVING aggregate_condition; -- Filters groups AFTER grouping
+```
+
+### Combined Example (JOIN + GROUP BY)
+```sql
+SELECT 
+    customers.customer_id,
+    customers.customer_name,
+    SUM(orders.order_amount) AS total_spent
+FROM customers
+INNER JOIN orders 
+    ON customers.customer_id = orders.customer_id
+GROUP BY 
+    customers.customer_id, 
+    customers.customer_name;
+```
+
+---
+
+## 3. Five Critical Rules for GROUP BY & HAVING
+
+### Rule 1: The Non-Aggregated Column Rule (The Golden Rule)
+Every column listed in your `SELECT` clause that is **not** wrapped inside an aggregate function **must** be explicitly listed in the `GROUP BY` clause.
+*   ❌ **Wrong:** `SELECT department, job_title, AVG(salary) FROM employees GROUP BY department;`
+*   **Correct:** `SELECT department, job_title, AVG(salary) FROM employees GROUP BY department, job_title;`
+
+### Rule 2: The Logical Execution Order
+SQL processes queries in a specific order, which dictates what data is available at each stage:
+1. `FROM` & `JOIN` *(Gathers data sources)*
+2. `WHERE` *(Filters raw rows)*
+3. `GROUP BY` *(Splits data into buckets)*
+4. `HAVING` *(Filters summarized buckets)*
+5. `SELECT` *(Computes and displays output columns)*
+6. `ORDER BY` *(Sorts the final output)*
+
+### Rule 3: `WHERE` vs. `HAVING` Separation
+*   Use **`WHERE`** to filter individual rows before grouping. It **cannot** contain aggregate functions (e.g., `WHERE SUM(sales) > 10` is an error).
+*   Use **`HAVING`** to filter the aggregated results after grouping (e.g., `HAVING SUM(sales) > 10` is correct).
+
+### Rule 4: Alias Restrictions
+Because `SELECT` runs *after* `GROUP BY` and `HAVING` (see Rule 2), standard SQL does not allow you to use column aliases created in the `SELECT` clause inside your `GROUP BY` or `HAVING` clauses.
+*   ❌ **Wrong:** `SELECT region AS r, COUNT(*) FROM sales GROUP BY r HAVING r = 'East';`
+*   **Correct:** `SELECT region AS r, COUNT(*) FROM sales GROUP BY region HAVING region = 'East';`
+
+### Rule 5: `NULL` Grouping
+If the column you are grouping by contains `NULL` values, the database engine treats them as a single value and will merge all `NULL` records into **one single row** in the final output.
+
