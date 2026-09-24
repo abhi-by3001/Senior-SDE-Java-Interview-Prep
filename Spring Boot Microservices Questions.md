@@ -792,3 +792,140 @@ Because `SELECT` runs *after* `GROUP BY` and `HAVING` (see Rule 2), standard SQL
 ### Rule 5: `NULL` Grouping
 If the column you are grouping by contains `NULL` values, the database engine treats them as a single value and will merge all `NULL` records into **one single row** in the final output.
 
+
+
+# Java Sorting Cheatsheet: Comparable, Comparator, Lists, and Arrays
+
+## 1. Comparable vs Comparator
+
+| Feature | `Comparable` | `Comparator` |
+| :--- | :--- | :--- |
+| **Package** | `java.lang` | `java.util` |
+| **Method** | `int compareTo(T o)` | `int compare(T o1, T o2)` |
+| **Logic Location** | **Internal:** Inside the target class. | **External:** In a separate class or lambda. |
+| **Modifies Class?** | **Yes:** Modifies original source code. | **No:** Leaves original class untouched. |
+| **Strategies** | Only **one** default natural sorting order. | **Multiple** custom sorting strategies. |
+| **Syntax** | `Collections.sort(list)` | `Collections.sort(list, customComparator)` |
+
+### Comparable Implementation Example
+```java
+import java.util.*;
+
+class Product implements Comparable<Product> {
+    private String name;
+    private double price;
+
+    public Product(String name, double price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    // Natural sorting by price (ascending)
+    @Override
+    public int compareTo(Product other) {
+        return Double.compare(this.price, other.price);
+    }
+
+    @Override
+    public String toString() { return name + ": $" + price; }
+}
+
+public class ComparableMain {
+    public static void main(String[] args) {
+        List<Product> list = new ArrayList<>(Arrays.asList(
+            new Product("Laptop", 1200),
+            new Product("Phone", 800)
+        ));
+        
+        Collections.sort(list); 
+        System.out.println(list); // [Phone: $800.0, Laptop: $1200.0]
+    }
+}
+```
+
+### Comparator Implementation Example
+```java
+import java.util.*;
+
+class Product {
+    private String name;
+    private double price;
+
+    public Product(String name, double price) {
+        this.name = name;
+        this.price = price;
+    }
+
+    public String getName() { return name; }
+    public double getPrice() { return price; }
+
+    @Override
+    public String toString() { return name + ": $" + price; }
+}
+
+public class ComparatorMain {
+    public static void main(String[] args) {
+        List<Product> list = new ArrayList<>(Arrays.asList(
+            new Product("Laptop", 1200),
+            new Product("Phone", 800)
+        ));
+
+        // Strategy 1: Sort externally by Name using Lambda expression
+        list.sort((p1, p2) -> p1.getName().compareTo(p2.getName()));
+        
+        // Strategy 2: Sort externally by Price using Comparator instance methods
+        list.sort(Comparator.comparingDouble(Product::getPrice).reversed()); 
+    }
+}
+```
+
+---
+
+## 2. Lists (`List<T>`)
+
+```java
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+public class ListSort {
+    public static void main(String[] args) {
+        List<Integer> list = new ArrayList<>(Arrays.asList(5, 2, 8, 1, 9));
+
+        // 🟢 INCREASING / ASCENDING ORDER
+        Collections.sort(list); 
+        // Alternative syntax: list.sort(Comparator.naturalOrder());
+
+        // 🔴 DECREASING / DESCENDING ORDER
+        Collections.sort(list, Collections.reverseOrder());
+        // Alternative syntax: list.sort(Comparator.reverseOrder());
+    }
+}
+```
+
+---
+
+## 3. Object Arrays (`Integer[]`, `String[]`)
+
+```java
+import java.util.Arrays;
+import java.util.Collections;
+
+public class ObjectArraySort {
+    public static void main(String[] args) {
+        Integer[] array = {5, 2, 8, 1, 9};
+
+        // 🟢 INCREASING / ASCENDING ORDER
+        Arrays.sort(array);
+
+        // 🔴 DECREASING / DESCENDING ORDER
+        Arrays.sort(array, Collections.reverseOrder());
+    }
+}
+```
+
+---
+
+
